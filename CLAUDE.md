@@ -9,7 +9,7 @@ Browser <──WebSocket──> src/server.ts (Express + WebSocketServer, same p
          HTTP GET /      └── serves public/index.html
 ```
 
-- `src/app.ts` — `createApp()` factory; exports `isClientMessage`, `ClientMessage`, `ServerMessage`. Import this in tests.
+- `src/app.ts` — `createApp()` factory; exports `isClientMessage`, `ClientMessage`, `ServerMessage`, `TaggedWebSocket`. Import this in tests.
 - `src/server.ts` — entry point only. Calls `createApp()`, binds signals, starts listening.
 - `dist/` — compiled output (gitignored), produced by `tsc`
 - `public/index.html` — self-contained frontend. WebSocket client + Web Audio synth inline.
@@ -56,6 +56,9 @@ Copy `.env.example` → `.env`. Only `PORT` is required (default: 3000).
 **ESM only. No CJS.** `"type": "module"` in package.json. All source files use `import`/`export`. Relative imports require explicit `.js` extensions (NodeNext resolution). Do not use `require()`, `module.exports`, or `.cjs` files.
 
 Jest runs with `NODE_OPTIONS=--experimental-vm-modules` for native ESM support. Use `import { jest } from '@jest/globals'` when `jest` object is needed in test files.
+
+## Development Workflow
+**TDD — tests first.** Always write or update failing tests before touching implementation. Red → green → refactor. New behavior = new test first.
 
 ## TypeScript Conventions
 - Strict mode (`"strict": true`)

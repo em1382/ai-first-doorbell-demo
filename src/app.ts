@@ -1,9 +1,14 @@
 import http from 'node:http'
+import { randomUUID } from 'node:crypto'
 import express from 'express'
 import { WebSocketServer, WebSocket } from 'ws'
 
 export type ClientMessage = { event: 'ring' }
 export type ServerMessage = { event: 'ding-dong' }
+
+export interface TaggedWebSocket extends WebSocket {
+  clientId: string
+}
 
 export function isClientMessage(val: unknown): val is ClientMessage {
   return (
@@ -20,8 +25,11 @@ export function createApp() {
 
   app.use(express.static('public'))
 
-  wss.on('connection', (ws: WebSocket) => {
-    ws.on('message', (raw) => {
+  wss.on('connection', (client: TaggedWebSocket) => {
+    client.clientId = randomUUID()
+    console.log(`[ws] client connected: ${client.clientId}`)
+
+    client.on('message', (raw) => {
       let parsed: unknown
       try {
         parsed = JSON.parse(raw.toString())
@@ -29,12 +37,17 @@ export function createApp() {
         return
       }
       if (isClientMessage(parsed)) {
-        console.log('[ws] ring received')
+        console.log(`[ws] ring received from ${client.clientId}`)
         const response: ServerMessage = { event: 'ding-dong' }
-        ws.send(JSON.stringify(response))
+        client.send(JSON.stringify(response))
       }
     })
-    ws.on('error', (err: Error) => console.error('[ws error]', err.message))
+
+    client.on('close', () => {
+      console.log(`[ws] client disconnected: ${client.clientId}`)
+    })
+
+    client.on('error', (err: Error) => console.error(`[ws error] ${client.clientId}:`, err.message))
   })
 
   return { app, server, wss }

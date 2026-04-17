@@ -20,7 +20,7 @@ npm run dev   # development (auto-reload)
 npm start     # production
 ```
 
-Open [http://localhost:3000](http://localhost:3000), click **RING**.
+Open [http://localhost:3000](http://localhost:3000), click **RING**. Open multiple tabs to simulate multiple clients — each connection gets a unique ID visible in the server logs.
 
 ## How It Works
 
