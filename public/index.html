@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Doorbell</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: system-ui, sans-serif;
+      gap: 2rem;
+    }
+
+    h1 { font-size: 1.5rem; font-weight: 500; letter-spacing: 0.05em; }
+
+    #doorbell {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 3px solid #f0c040;
+      background: #1a1a1a;
+      color: #f0c040;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    #doorbell:hover  { background: #252525; }
+    #doorbell:active { transform: scale(0.96); }
+    #doorbell.ringing {
+      background: #f0c040;
+      color: #0f0f0f;
+    }
+
+    #status {
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      opacity: 0.5;
+    }
+    #status.connected    { color: #4caf50; opacity: 1; }
+    #status.disconnected { color: #f44336; opacity: 1; }
+  </style>
+</head>
+<body>
+  <h1>Doorbell</h1>
+  <button id="doorbell">RING</button>
+  <span id="status">Connecting...</span>
+
+  <script>
+    const btn = document.getElementById('doorbell')
+    const statusEl = document.getElementById('status')
+
+    let audioCtx = null
+
+    /** Play a two-tone bell: "ding" at 880 Hz then "dong" at 660 Hz */
+    function playDingDong() {
+      if (!audioCtx) audioCtx = new AudioContext()
+
+      const now = audioCtx.currentTime
+
+      function tone(freq, startTime, duration) {
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.5, startTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration)
+        osc.start(startTime)
+        osc.stop(startTime + duration)
+      }
+
+      tone(880, now, 0.6)        // ding
+      tone(660, now + 0.4, 0.8)  // dong
+    }
+
+    // WebSocket setup
+    const ws = new WebSocket('ws://' + location.host)
+
+    ws.addEventListener('open', () => {
+      statusEl.textContent = 'Connected'
+      statusEl.className = 'connected'
+    })
+
+    ws.addEventListener('close', () => {
+      statusEl.textContent = 'Disconnected'
+      statusEl.className = 'disconnected'
+    })
+
+    ws.addEventListener('error', () => {
+      statusEl.textContent = 'Error'
+      statusEl.className = 'disconnected'
+    })
+
+    ws.addEventListener('message', (e) => {
+      let msg
+      try { msg = JSON.parse(e.data) } catch { return }
+      if (msg.event === 'ding-dong') {
+        playDingDong()
+        btn.textContent = 'DING-DONG!'
+        btn.classList.add('ringing')
+        setTimeout(() => {
+          btn.textContent = 'RING'
+          btn.classList.remove('ringing')
+        }, 1500)
+      }
+    })
+
+    btn.addEventListener('click', () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: 'ring' }))
+      }
+    })
+  </script>
+</body>
+</html>
