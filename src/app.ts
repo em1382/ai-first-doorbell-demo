@@ -25,8 +25,7 @@ export function createApp() {
 
   app.use(express.static('public'))
 
-  wss.on('connection', (ws: WebSocket) => {
-    const client = ws as TaggedWebSocket
+  wss.on('connection', (client: TaggedWebSocket) => {
     client.clientId = randomUUID()
     console.log(`[ws] client connected: ${client.clientId}`)
 
